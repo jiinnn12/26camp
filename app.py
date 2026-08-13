@@ -35,7 +35,7 @@ with col1:
 with col2:
     target_univ = st.text_input(
         "목표 대학 및 학과",
-        value="고려대학교 컴퓨터공학과"
+        value="연세대학교 컴퓨터공학과"
     )
 
 user_context = st.text_area(
