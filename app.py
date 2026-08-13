@@ -1,79 +1,72 @@
 import streamlit as st
-import pandas as pd
-import scipy.stats as stats
+import numpy as np
 
-st.set_page_config(page_title="5등급 ➔ 9등급 성적 환산기", layout="centered")
+st.set_page_config(page_title="소수점 정밀 내신 환산기", layout="centered")
 
-st.title("📊 내신 5등급제 ➔ 9등급제 환산 시뮬레이터")
-st.caption("2022 개정 교육과정 5등급제 성적을 기존 9등급제 기준으로 추정·환산합니다.")
+st.title("📊 소수점 단위 5등급제 ➔ 9등급제 정밀 환산기")
+st.caption("5등급제 내신 평균 등급을 소수점 첫째 자리까지 입력하면 9등급제로 정밀 추정합니다.")
 
-# 1. 환산 방식 선택
-mode = st.radio("환산 방식을 선택하세요:", ["단순 등급 매핑 (추정)", "Z-점수 기반 정밀 계산 (원점수/평균 필요)"])
+# 1. 5등급제 등급 입력 (소수점 첫째자리 슬라이더 및 숫자인풋)
+col1, col2 = st.columns([2, 1])
 
-# 9등급제 누적 비율 기준 (상한선)
-scale_9 = [
-    (0.04, 1),
-    (0.11, 2),
-    (0.23, 3),
-    (0.40, 4),
-    (0.60, 5),
-    (0.77, 6),
-    (0.89, 7),
-    (0.96, 8),
-    (1.00, 9)
-]
+with col1:
+    grade5_val = st.slider(
+        "5등급제 평균 등급을 선택하세요:",
+        min_value=1.0,
+        max_value=5.0,
+        value=1.4,
+        step=0.1,
+        format="%.1f"
+    )
 
-def pct_to_9grade(pct):
-    """백분율(0.0~1.0)을 9등급으로 변환"""
-    for limit, grade in scale_9:
-        if pct <= limit:
-            return grade
-    return 9
+with col2:
+    # 수치 직접 입력도 가능
+    grade5_input = st.number_input(
+        "직접 입력 (1.0 ~ 5.0)",
+        min_value=1.0,
+        max_value=5.0,
+        value=float(grade5_val),
+        step=0.1,
+        format="%.1f"
+    )
 
-if mode == "단순 등급 매핑 (추정)":
-    st.subheader("과목별 5등급제 성적 입력")
-    
-    # 5등급제 중간 백분율값 매핑
-    grade5_mid_pct = {
-        1: 0.05,  # 상위 0~10% (중간 5%)
-        2: 0.22,  # 상위 10~34% (중간 22%)
-        3: 0.50,  # 상위 34~66% (중간 50%)
-        4: 0.78,  # 상위 66~90% (중간 78%)
-        5: 0.95   # 상위 90~100% (중간 95%)
-    }
+# 두 입력값 동기화
+target_grade = grade5_input
 
-    grade5_input = st.selectbox("5등급제 등급 선택", [1, 2, 3, 4, 5])
-    
-    if st.button("환산하기"):
-        estimated_pct = grade5_mid_pct[grade5_input]
-        grade9_result = pct_to_9grade(estimated_pct)
-        
-        st.divider()
-        col1, col2 = st.columns(2)
-        col1.metric("입력한 5등급제 성적", f"{grade5_input} 등급")
-        col2.metric("추정 9등급제 성적", f"{grade9_result} 등급")
-        
-        st.info(f"💡 5등급제 {grade5_input}등급의 추정 상위 백분율 약 {int(estimated_pct*100)}%를 기준으로 산출되었습니다.")
+# 2. 선형 보간 알고리즘 (5등급제 기준점 ➔ 9등급제 대치점)
+# 5등급제 경계점 (1.0, 1.5, 2.5, 3.5, 4.5, 5.0)
+x_5scale = [1.0, 1.5, 2.5, 3.5, 4.5, 5.0]
 
-else:
-    st.subheader("상세 성적 입력 (정규분포 Z-점수 활용)")
-    
-    col1, col2 = st.columns(2)
-    with col1:
-        raw_score = st.number_input("내 원점수", min_value=0.0, max_value=100.0, value=85.0)
-        mean_score = st.number_input("과목 평균", min_value=0.0, max_value=100.0, value=70.0)
-    with col2:
-        std_dev = st.number_input("표준편차", min_value=0.1, max_value=50.0, value=15.0)
-        
-    if st.button("정밀 환산하기"):
-        # Z-점수 계산 (X - mu) / sigma
-        z_score = (raw_score - mean_score) / std_dev
-        # 상위 백분율 (1 - 누적분포함수)
-        top_pct = 1 - stats.norm.cdf(z_score)
-        
-        grade9_result = pct_to_9grade(top_pct)
-        
-        st.divider()
-        st.metric("Z-점수 기반 추정 9등급", f"{grade9_result} 등급")
-        st.write(f"- 계산된 Z-Score: **{z_score:.2f}**")
-        st.write(f"- 추정 상위 백분율: **상위 {top_pct*100:.1f}%**")
+# 해당 백분율 위치에 대응하는 9등급제 연속 등급 값
+y_9scale = [1.0, 1.9, 3.7, 5.3, 7.5, 9.0]
+
+# numpy interp 함수로 소수점 연속 계산
+estimated_9grade = np.interp(target_grade, x_5scale, y_9scale)
+
+# 입력 등급에 따른 대략적인 상위 백분율 추정
+pct_x = [1.0, 1.5, 2.5, 3.5, 4.5, 5.0]
+pct_y = [0.0, 10.0, 34.0, 66.0, 90.0, 100.0]
+estimated_pct = np.interp(target_grade, pct_x, pct_y)
+
+st.divider()
+
+# 3. 결과 출력
+res_col1, res_col2 = st.columns(2)
+
+with res_col1:
+    st.metric(label="입력한 5등급제 성적", value=f"{target_grade:.1f} 등급")
+
+with res_col2:
+    st.metric(label="추정 9등급제 성적", value=f"{estimated_9grade:.1f} 등급")
+
+st.success(f"💡 **5등급제 {target_grade:.1f}등급**은 상위 약 **{estimated_pct:.1f}%** 수준에 해당하며, 기존 9등급제 기준 **{estimated_9grade:.1f}등급**으로 추산됩니다.")
+
+# 추가 가이드 박스
+with st.expander("📌 환산 구간 가이드 기준 보기"):
+    st.write("""
+    - **1.0 ~ 1.5 미만**: 9등급제 **1.0 ~ 1.9 등급** 수준 (최상위권)
+    - **1.5 ~ 2.5 미만**: 9등급제 **1.9 ~ 3.7 등급** 수준 (상위권)
+    - **2.5 ~ 3.5 미만**: 9등급제 **3.7 ~ 5.3 등급** 수준 (중위권)
+    - **3.5 ~ 4.5 미만**: 9등급제 **5.3 ~ 7.5 등급** 수준
+    - **4.5 ~ 5.0 이하**: 9등급제 **7.5 ~ 9.0 등급** 수준
+    """)
