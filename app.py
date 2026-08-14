@@ -1,5 +1,5 @@
 # 기존 코드 상단에 있던 API 키 설정
-api_key = st.secrets.get("UPSTAGE_API_KEY", "up_Y7OKHBUB2q7pi7C4E1ILIWItBAUOG")
+api_key = st.secrets.get("up_Y7OKHBUB2q7pi7C4E1ILIWItBAUOG", "")
 # client = OpenAI(api_key=api_key, base_url="https://api.upstage.ai/v1/solar") 
 # ... 등등 기존 API 설정 코드
 
