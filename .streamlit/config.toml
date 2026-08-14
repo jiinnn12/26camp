@@ -1,6 +1,6 @@
 [theme]
-primaryColor = "#3B82F6"
-backgroundColor = "#FFFFFF"
-secondaryBackgroundColor = "#F8FAFC"
-textColor = "#1E293B"
+primaryColor = "#10B981"          # 트렌디한 에메랄드 그린
+backgroundColor = "#F0FDF4"       # 연한 미색/민트 배경
+secondaryBackgroundColor = "#FFFFFF" # 흰색 카드 영역
+textColor = "#064E3B"             # 다크 그린 글자
 font = "sans serif"
